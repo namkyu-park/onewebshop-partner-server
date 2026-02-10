@@ -244,3 +244,57 @@ def receive_onestore_pns(
         db.rollback()
         logger.error(f"PNS 처리 중 오류 발생: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@router.post("/onestore_pns/sandbox", response_model=schemas.OnestorePNSResponse)
+def receive_onestore_pns(
+    pns_data: schemas.OnestorePNSRequest, 
+    db: Session = Depends(get_db)
+):
+    """
+    원스토어 PNS(Push Notification Service) 수신 엔드포인트 (SANDBOX)
+    
+    원스토어에서 인앱상품 결제 또는 결제취소 발생 시 호출됩니다.
+    
+    - msgVersion: 3.1.0 (상용) 또는 3.1.0D (개발/Sandbox)
+    - purchaseState: COMPLETED (결제완료) / CANCELED (취소)
+    - environment: SANDBOX (개발) / COMMERCIAL (상용)
+    - marketCode: MKT_ONE (원스토어) / MKT_GLB (원스토어 글로벌)
+    """
+    
+    try:
+        logger.info(f"원스토어 PNS 수신: purchaseId={pns_data.purchaseId}, state={pns_data.purchaseState}")
+        
+        # paymentTypeList를 JSON 문자열로 변환
+        payment_types_json = json.dumps([
+            {"paymentMethod": pt.paymentMethod, "amount": pt.amount}
+            for pt in pns_data.paymentTypeList
+        ], ensure_ascii=False)
+        
+        # 원본 데이터를 JSON 문자열로 저장
+        # raw_data_json = pns_data.model_dump_json()
+        
+        # logger.info(f"원스토어 PNS 수신: purchaseId={pns_data.purchaseId}, state={pns_data.purchaseState}, raw_data={raw_data_json}")
+        # 결제 상태에 따른 추가 처리
+        if pns_data.purchaseState == "COMPLETED":
+            logger.info(f"원스토어 PNS 결제 완료 처리: purchaseId={pns_data.purchaseId}, price={pns_data.price} {pns_data.priceCurrencyCode}")
+            # TODO: 여기에 게임 아이템 지급 로직 추가
+            
+        elif pns_data.purchaseState == "CANCELED":
+            logger.info(f"원스토어 PNS 결제 취소 처리: purchaseId={pns_data.purchaseId}")
+            # TODO: 여기에 게임 아이템 회수 로직 추가
+        
+        # 테스트폰 여부 로깅
+        if pns_data.isTestMdn:
+            logger.warning(f"원스토어 PNS 테스트폰 결제: purchaseId={pns_data.purchaseId}")
+        
+        return schemas.OnestorePNSResponse(
+            success=True,
+            message="Notification received successfully",
+            purchaseId=pns_data.purchaseId
+        )
+
+    except Exception as e:
+        db.rollback()
+        logger.error(f"PNS 처리 중 오류 발생: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
