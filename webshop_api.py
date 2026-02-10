@@ -114,7 +114,7 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
     ).first()
     
     if db_game_user:
-        logger.log(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {req.param.parentProdId}, 인앱상품ID: {req.param.prodId}")
+        logger.info(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {req.param.parentProdId}, 인앱상품ID: {req.param.prodId}")
         return schemas.GameUserCheckResponse(
             result=schemas.ResponseResult(
                 code="0000", 
@@ -133,10 +133,11 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
 @router.post("/onestore_webshop/serverlist", response_model=schemas.GameServerListResponse)
 def get_onestore_webshop_serverlist(req: schemas.OnestoreWebshopServerListRequest, db: Session = Depends(get_db)):
     game_servers = db.query(models.GameServer).filter(models.GameServer.game_id == req.param.prodId).all()
+    logger.info(f"원스토어 웹샵({req.param.prodId}) 서버 목록 조회: {game_servers}")
     return schemas.GameServerListResponse(
         result=schemas.ResponseResult(
             code="0000", 
-            message="Game servers retrieved successfully"),
+            message=f"Onestore Webshop({req.param.prodId}) servers retrieved successfully"),
         serverList=game_servers
     )
 
