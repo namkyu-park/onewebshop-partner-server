@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - ENV=local
+      - PORT=8080
+    volumes:
+      # 로컬 data 폴더를 컨테이너에 마운트
+      - ./data:/app/data
+    restart: unless-stopped

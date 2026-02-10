@@ -16,11 +16,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 애플리케이션 코드 복사
 COPY . .
 
-# SQLite 데이터베이스 디렉토리 권한 설정
-RUN mkdir -p /app/data && chmod 777 /app/data
+# SQLite 데이터베이스 디렉토리 생성 (Volume Mount 지점)
+RUN mkdir -p /data && chmod 777 /data
 
-# Cloud Run에서 사용하는 포트 (기본 8080)
+# 환경 변수 설정
 ENV PORT=8080
+ENV ENV=production
 
 # 애플리케이션 실행
 CMD uvicorn main:app --host 0.0.0.0 --port ${PORT}
