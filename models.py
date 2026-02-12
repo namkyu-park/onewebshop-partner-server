@@ -45,5 +45,7 @@ class OnestorePNS(Base):
     market_code = Column(String(20), nullable=False)  # MKT_ONE / MKT_GLB
     signature = Column(Text, nullable=False)
     raw_data = Column(Text, nullable=True)  # 원본 JSON 데이터 저장
+    serviceUserId = Column(String(255), nullable=True)
+    serviceServerId = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
