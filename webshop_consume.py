@@ -13,7 +13,7 @@ def get_domain(environment: str = "SANDBOX") -> str:
     """
     if environment == "SANDBOX":
         return "qa-sbpp.onestore.co.kr"
-    else:
+    else: # COMMERCIAL
         return "qa-pp.onestore.co.kr"
 
 def get_onestore_client_secret(client_id: str) -> str:
@@ -80,7 +80,7 @@ def consume_onestore_purchase(client_id: str, purchase_token: str, developerPayl
     try:
         logger.info(f"url: {url}")
         logger.info(f"header: {headers}")
-        logger.infor(f"body: {body}")
+        logger.info(f"body: {body}")
         response = requests.post(url, json=body, headers=headers, timeout=10)
         
         if response.status_code == 200:

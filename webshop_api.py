@@ -215,6 +215,7 @@ def receive_onestore_pns(
         if pns_data.purchaseState == "COMPLETED":
             logger.info(f"결제 완료 처리: purchaseId={pns_data.purchaseId}, price={pns_data.price} {pns_data.priceCurrencyCode}")
             # TODO: 여기에 게임 아이템 지급 로직 추가
+            consume_onestore_purchase(pns_data.clientId, pns_data.purchaseToken, pns_data.developerPayload, "COMMERCIAL");
             
         elif pns_data.purchaseState == "CANCELED":
             logger.info(f"결제 취소 처리: purchaseId={pns_data.purchaseId}")
