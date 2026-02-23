@@ -49,7 +49,7 @@ def get_onestore_access_token(client_id: str, environment: str = "SANDBOX") -> s
         raise Exception(f"원스토어 액세스 토큰 발급 실패: {response.text}")
 
 
-def consume_onestore_purchase(client_id: str, purchase_token: str, developerPayload: str, environment: str = "SANDBOX") -> bool:
+def consume_onestore_purchase(client_id: str, product_id: str, purchase_token: str, developerPayload: str, environment: str = "SANDBOX") -> dict:
     """
     원스토어 인앱 상품 구매 완료 처리 (Consume)
     
@@ -61,7 +61,7 @@ def consume_onestore_purchase(client_id: str, purchase_token: str, developerPayl
         bool: 성공 여부
     """
     domain = get_domain(environment)
-    url = f"https://{domain}/pc/v7/apps/{client_id}/purchases/inapp/{purchase_token}/consume"
+    url = f"https://{domain}/pc/v7/apps/{client_id}/purchases/inapp/{product_id}/{purchase_token}/consume"
     access_token = get_onestore_access_token(client_id, environment)
     if not access_token:
         raise Exception(f"원스토어 액세스 토큰 발급 실패")
@@ -84,15 +84,17 @@ def consume_onestore_purchase(client_id: str, purchase_token: str, developerPayl
         response = requests.post(url, json=body, headers=headers, timeout=10)
         
         if response.status_code == 200:
-            logger.info(f"원스토어 consume 성공: {purchase_token}")
-            return True
+            resp_data = response.json()
+            result = resp_data.get("result", {})
+            logger.info(f"consume response: {resp_data}")
+            return resp_data
         else:
             logger.error(f"원스토어 consume 실패: status={response.status_code}, response={response.text}")
-            return False
+            return {}
             
     except requests.exceptions.Timeout:
         logger.error(f"원스토어 consume 타임아웃: {purchase_token}")
-        return False
+        return {}
     except Exception as e:
         logger.error(f"원스토어 consume 오류: {str(e)}")
-        return False
+        return {}

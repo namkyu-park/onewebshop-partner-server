@@ -109,3 +109,9 @@ class OnestorePNSResponse(BaseModel):
     message: str
     purchaseId: Optional[str] = None
 
+class RequestForceConume(BaseModel):
+    clientId: str
+    productId: str
+    purchaseToken: str
+    developerPayload: str
+    environment: str
