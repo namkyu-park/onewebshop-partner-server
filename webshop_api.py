@@ -213,23 +213,27 @@ def receive_onestore_pns(
         db.commit()
         db.refresh(db_pns)
         
+        message = ""
         # 결제 상태에 따른 추가 처리
         if pns_data.purchaseState == "COMPLETED":
             # TODO: 여기에 게임 아이템 지급 로직 추가
-            logger.info(f"결제 완료 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}")
-            consume_onestore_purchase(pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "COMMERCIAL");
+            message = f"결제 완료 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
+            logger.info(message)
+            consume_onestore_purchase(pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "COMMERCIAL")
             
         elif pns_data.purchaseState == "CANCELED":
-            logger.info(f"결제 취소 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}")
+            message = f"결제 취소 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
+            logger.info(message)
             # TODO: 여기에 게임 아이템 회수 로직 추가
         
         # 테스트폰 여부 로깅
         if pns_data.isTestMdn:
-            logger.warning(f"테스트폰 결제: purchaseId={pns_data.purchaseId}")
+            message = f"테스트폰 결제: purchaseId={pns_data.purchaseId}"
+            logger.warning(message)
         
         return schemas.OnestorePNSResponse(
             success=True,
-            message="Notification received successfully",
+            message=message,
             purchaseId=pns_data.purchaseId
         )
         
@@ -281,22 +285,26 @@ def receive_onestore_pns(
         
         # logger.info(f"원스토어 PNS 수신: purchaseId={pns_data.purchaseId}, state={pns_data.purchaseState}, raw_data={raw_data_json}")
         # 결제 상태에 따른 추가 처리
+        message = ""
         if pns_data.purchaseState == "COMPLETED":
-            logger.info(f"원스토어 PNS 결제 완료 처리: purchaseId={pns_data.purchaseId}, price={pns_data.price} {pns_data.priceCurrencyCode}")
+            message = f"결제 완료 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}" 
+            logger.info(message)
             # TODO: 여기에 게임 아이템 지급 로직 추가
-            consume_onestore_purchase(pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "SANDBOX");
+            consume_onestore_purchase(pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "SANDBOX")
             
         elif pns_data.purchaseState == "CANCELED":
-            logger.info(f"원스토어 PNS 결제 취소 처리: purchaseId={pns_data.purchaseId}")
+            message = f"결제 취소 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
+            logger.info(message)
             # TODO: 여기에 게임 아이템 회수 로직 추가
         
         # 테스트폰 여부 로깅
         if pns_data.isTestMdn:
-            logger.warning(f"원스토어 PNS 테스트폰 결제: purchaseId={pns_data.purchaseId}")
+            message = f"원스토어 PNS 테스트폰 결제: purchaseId={pns_data.purchaseId}"
+            logger.warning(message)
         
         return schemas.OnestorePNSResponse(
             success=True,
-            message="Notification received successfully",
+            message=message,
             purchaseId=pns_data.purchaseId
         )
 
