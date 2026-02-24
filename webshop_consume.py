@@ -61,7 +61,7 @@ def consume_onestore_purchase(client_id: str, product_id: str, purchase_token: s
         bool: 성공 여부
     """
     domain = get_domain(environment)
-    url = f"https://{domain}/pc/v7/apps/{client_id}/purchases/inapp/{product_id}/{purchase_token}/consume"
+    url = f"https://{domain}/v7/apps/{client_id}/purchases/inapp/products/{product_id}/{purchase_token}/consume"
     access_token = get_onestore_access_token(client_id, environment)
     if not access_token:
         raise Exception(f"원스토어 액세스 토큰 발급 실패")
