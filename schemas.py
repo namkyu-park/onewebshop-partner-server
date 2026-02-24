@@ -101,6 +101,8 @@ class OnestorePNSRequest(BaseModel):
     environment: str  # SANDBOX / COMMERCIAL
     marketCode: str  # MKT_ONE / MKT_GLB
     signature: str
+    serviceUserId: str
+    serviceServerId: str
 
 
 class OnestorePNSResponse(BaseModel):

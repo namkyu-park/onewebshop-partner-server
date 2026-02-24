@@ -204,7 +204,9 @@ def receive_onestore_pns(
             environment=pns_data.environment,
             market_code=pns_data.marketCode,
             signature=pns_data.signature,
-            raw_data=raw_data_json
+            raw_data=raw_data_json,
+            serviceUserId=pns_data.serviceUserId,
+            serviceServerId=pns_data.serviceServerId
         )
         
         db.add(db_pns)
@@ -213,12 +215,12 @@ def receive_onestore_pns(
         
         # 결제 상태에 따른 추가 처리
         if pns_data.purchaseState == "COMPLETED":
-            logger.info(f"결제 완료 처리: purchaseId={pns_data.purchaseId}, price={pns_data.price} {pns_data.priceCurrencyCode}")
             # TODO: 여기에 게임 아이템 지급 로직 추가
+            logger.info(f"결제 완료 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}")
             consume_onestore_purchase(pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "COMMERCIAL");
             
         elif pns_data.purchaseState == "CANCELED":
-            logger.info(f"결제 취소 처리: purchaseId={pns_data.purchaseId}")
+            logger.info(f"결제 취소 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}")
             # TODO: 여기에 게임 아이템 회수 로직 추가
         
         # 테스트폰 여부 로깅
