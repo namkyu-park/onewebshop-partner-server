@@ -108,6 +108,9 @@ def get_game_user_list(game_id: str, db: Session = Depends(get_db)):
 
 @router.post("/gameuser/check", response_model=schemas.GameUserCheckResponse)
 def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get_db)):
+
+    logger.info(f"parentProdId: {req.param.parentProdId}, prodId: {req.param.prodId}, serviceUserId: {req.param.serviceUserId}, serviceServerId {req.param.serviceServerId}")
+
     # DB에서 조건에 맞는 사용자 조회
     db_game_user = db.query(models.GameUser).filter(
         models.GameUser.game_id == req.param.parentProdId,
