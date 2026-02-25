@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from database import init_db
 from webshop_api import router as webshop_router
 import logging
@@ -58,6 +60,22 @@ def read_root():
 def health_check():
     return {"status": "ok"}
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # ❌ 실제 받은 요청 본문 출력 (여기서 문제 파악!)
+    body = await request.body()
+    print("== 422 ERROR ===")
+    print(f"Request URL: {request.url}")
+    print(f"Request Header: {request.headers}")
+    print(f"Request Body: {body.decode()}")
+    print(f"Validation Errors: {exc.errors()}")
+    print("==================")
+    
+    # 기본 422 응답 반환
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()}
+    )
 
 if __name__ == "__main__":
     import uvicorn

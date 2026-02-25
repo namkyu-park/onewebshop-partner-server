@@ -1,7 +1,4 @@
-from typing import List
-from fastapi import APIRouter, Depends, Request, HTTPException
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 import models
@@ -331,19 +328,3 @@ def force_consume(req: schemas.RequestForceConume):
         logger.error(f"Consume 처리 중 오류 발생: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@router.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    # ❌ 실제 받은 요청 본문 출력 (여기서 문제 파악!)
-    body = await request.body()
-    print("== 422 ERROR ===")
-    print(f"Request URL: {request.url}")
-    print(f"Request Header: {request.headers}")
-    print(f"Request Body: {body.decode()}")
-    print(f"Validation Errors: {exc.errors()}")
-    print("==================")
-    
-    # 기본 422 응답 반환
-    return JSONResponse(
-        status_code=422,
-        content={"detail": exc.errors()}
-    )
