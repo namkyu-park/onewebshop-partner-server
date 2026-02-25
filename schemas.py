@@ -53,7 +53,7 @@ class GameUserListResponse(ResposeBase):
 # GameUser 조회 API용 스키마
 class GameUserCheckParam(BaseModel):
     parentProdId: str
-    prodId: str
+    prodId: str | None = Field(default=None) # Optional
     serviceUserId: str
     serviceServerId: str
 
@@ -65,7 +65,7 @@ class GameUserCheckRequest(BaseModel):
 
 class GameUserCheckResponse(ResposeBase):
     model_config = ConfigDict(from_attributes=True)
-    gameUser: Optional[GameUser] = None
+    gameUser: GameUser | None = Field(default=None)
 
 
 # 원스토어 PNS 스키마
