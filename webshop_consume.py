@@ -29,7 +29,7 @@ def get_onestore_client_secret(env_data: OnestoreEnvData) -> str:
     else:
         raise ValueError(f"원스토어 클라이언트 시크릿을 찾을 수 없습니다. client_id: {env_data}")
 
-def get_onestore_access_token(client_id: str, domain: str) -> str:
+def get_onestore_access_token(client_id: str, domain: str, client_secret: str) -> str:
     url = f"https://{domain}/v2/oauth/token"
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -38,7 +38,7 @@ def get_onestore_access_token(client_id: str, domain: str) -> str:
 
     body = {
         "client_id": client_id,
-        "client_secret": get_onestore_client_secret(client_id),
+        "client_secret": client_secret,
         "grant_type": "client_credentials",
     }
     response = requests.post(url, data=body, headers=headers, timeout=10)
@@ -57,12 +57,13 @@ def consume_onestore_purchase(db: Session, client_id: str, product_id: str, purc
     if not env_data:
         raise Exception(f"원스토어 환경 데이터를 찾을 수 없습니다. client_id: {client_id}")
 
-    domain = get_pns_domain(env_data, environment)
-    access_token = get_onestore_access_token(client_id, environment)
+    pns_domain = get_pns_domain(env_data, environment)
+    client_secret = get_onestore_client_secret(env_data)
+    access_token = get_onestore_access_token(client_id, pns_domain, client_secret)
     if not access_token:
         raise Exception(f"원스토어 액세스 토큰 발급 실패")
 
-    consume_url = f"https://{domain}/v7/apps/{client_id}/purchases/inapp/products/{product_id}/{purchase_token}/consume"
+    consume_url = f"https://{pns_domain}/v7/apps/{client_id}/purchases/inapp/products/{product_id}/{purchase_token}/consume"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
