@@ -4,6 +4,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from database import init_db
 from webshop_api import router as webshop_router
+from webshop_onestore_env_api import router as onestore_env_router
 import logging
 import sys
 
@@ -40,6 +41,7 @@ app.add_middleware(
 
 # 라우터 등록
 app.include_router(webshop_router, tags=["Webshop"])
+app.include_router(onestore_env_router, tags=["Onestore Environment"])
 
 
 @app.get("/")

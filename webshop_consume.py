@@ -1,32 +1,35 @@
 import requests
 import logging
+from models import OnestoreEnvData
+from sqlalchemy.orm import Session
+from webshop_onestore_env_api import get_onestore_env_data
 
 logger = logging.getLogger(__name__)
 
-_ONESTORE_CLIENT_SECRET = {
-    "WS00000026": "QVtVXBIMyRTt7Iz7PD08r4bKPBe5FgBzeMRgUe9jGKM=",
-}
 
-def get_domain(environment: str = "SANDBOX") -> str:
+def get_env_data(db: Session, client_id: str) -> OnestoreEnvData:
     """
-    원스토어 도메인 반환
+    원스토어 환경 데이터 반환
     """
+    env_data = get_onestore_env_data(db, client_id)
+    if not env_data:
+        raise Exception(f"원스토어 환경 데이터를 찾을 수 없습니다. client_id: {client_id}")
+    return env_data
+
+def get_pns_domain(env_data: OnestoreEnvData, environment: str = "SANDBOX") -> str:
     if environment == "SANDBOX":
-        return "qa-sbpp.onestore.co.kr"
+        return env_data.pns_sandbox_domain
     else: # COMMERCIAL
-        return "qa-pp.onestore.co.kr"
+        return env_data.pns_commercial_domain
 
-def get_onestore_client_secret(client_id: str) -> str:
-    """
-    원스토어 클라이언트 시크릿 반환
-    """
-    if client_id in _ONESTORE_CLIENT_SECRET:
-        return _ONESTORE_CLIENT_SECRET[client_id]
+
+def get_onestore_client_secret(env_data: OnestoreEnvData) -> str:
+    if env_data and env_data.client_secret:
+        return env_data.client_secret
     else:
-        raise ValueError(f"원스토어 클라이언트 시크릿을 찾을 수 없습니다. client_id: {client_id}")
+        raise ValueError(f"원스토어 클라이언트 시크릿을 찾을 수 없습니다. client_id: {env_data}")
 
-def get_onestore_access_token(client_id: str, environment: str = "SANDBOX") -> str:
-    domain = get_domain(environment)
+def get_onestore_access_token(client_id: str, domain: str) -> str:
     url = f"https://{domain}/v2/oauth/token"
     headers = {
         "Content-Type": "application/x-www-form-urlencoded",
@@ -49,23 +52,17 @@ def get_onestore_access_token(client_id: str, environment: str = "SANDBOX") -> s
         raise Exception(f"원스토어 액세스 토큰 발급 실패: {response.text}")
 
 
-def consume_onestore_purchase(client_id: str, product_id: str, purchase_token: str, developerPayload: str, environment: str = "SANDBOX") -> dict:
-    """
-    원스토어 인앱 상품 구매 완료 처리 (Consume)
-    
-    Args:
-        client_id: 앱의 클라이언트 ID
-        purchase_token: 구매 토큰
-        
-    Returns:
-        bool: 성공 여부
-    """
-    domain = get_domain(environment)
-    url = f"https://{domain}/v7/apps/{client_id}/purchases/inapp/products/{product_id}/{purchase_token}/consume"
+def consume_onestore_purchase(db: Session, client_id: str, product_id: str, purchase_token: str, developerPayload: str, environment: str = "SANDBOX") -> dict:
+    env_data = get_env_data(db, client_id)
+    if not env_data:
+        raise Exception(f"원스토어 환경 데이터를 찾을 수 없습니다. client_id: {client_id}")
+
+    domain = get_pns_domain(env_data, environment)
     access_token = get_onestore_access_token(client_id, environment)
     if not access_token:
         raise Exception(f"원스토어 액세스 토큰 발급 실패")
-    
+
+    consume_url = f"https://{domain}/v7/apps/{client_id}/purchases/inapp/products/{product_id}/{purchase_token}/consume"
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
@@ -78,10 +75,10 @@ def consume_onestore_purchase(client_id: str, product_id: str, purchase_token: s
     }
     
     try:
-        logger.info(f"url: {url}")
+        logger.info(f"url: {consume_url}")
         logger.info(f"header: {headers}")
         logger.info(f"body: {body}")
-        response = requests.post(url, json=body, headers=headers, timeout=10)
+        response = requests.post(consume_url, json=body, headers=headers, timeout=10)
         
         if response.status_code == 200:
             resp_data = response.json()

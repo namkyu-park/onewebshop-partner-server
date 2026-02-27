@@ -117,3 +117,45 @@ class RequestForceConume(BaseModel):
     purchaseToken: str
     developerPayload: str
     environment: str
+
+
+# OnestoreEnvData 스키마
+class OnestoreEnvDataBase(BaseModel):
+    """원스토어 환경 데이터 기본 스키마"""
+    client_id: str
+    license_key: str
+    client_secret: str
+    pns_sandbox_domain: str
+    pns_commercial_domain: str
+
+
+class OnestoreEnvDataCreate(OnestoreEnvDataBase):
+    """원스토어 환경 데이터 생성 요청"""
+    pass
+
+
+class OnestoreEnvDataUpdate(BaseModel):
+    """원스토어 환경 데이터 수정 요청"""
+    license_key: Optional[str] = None
+    client_secret: Optional[str] = None
+    pns_sandbox_domain: Optional[str] = None
+    pns_commercial_domain: Optional[str] = None
+
+
+class OnestoreEnvData(OnestoreEnvDataBase):
+    """원스토어 환경 데이터 응답"""
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: int
+
+
+class OnestoreEnvDataListResponse(BaseModel):
+    """원스토어 환경 데이터 목록 응답"""
+    result: ResponseResult = ResponseResult()
+    envDataList: List[OnestoreEnvData] = []
+
+
+class OnestoreEnvDataResponse(BaseModel):
+    """원스토어 환경 데이터 단일 응답"""
+    result: ResponseResult = ResponseResult()
+    envData: Optional[OnestoreEnvData] = None

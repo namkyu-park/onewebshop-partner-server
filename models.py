@@ -2,6 +2,15 @@ from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, 
 from sqlalchemy.sql import func
 from database import Base
 
+class OnestoreEnvData(Base):
+    __tablename__ = "onestore_env"
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(String, index=True)
+    license_key = Column(String, nullable=False)
+    client_secret = Column(String, nullable=False)
+    pns_sandbox_domain = Column(String, nullable=False)
+    pns_commercial_domain = Column(String, nullable=False)
+
 class GameServer(Base):
     __tablename__ = "game_servers"
     id = Column(Integer, primary_key=True, index=True)

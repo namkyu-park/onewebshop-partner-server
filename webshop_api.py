@@ -221,7 +221,7 @@ def receive_onestore_pns(
             # TODO: 여기에 게임 아이템 지급 로직 추가
             message = f"결제 완료 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
             logger.info(message)
-            consume_onestore_purchase(pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "COMMERCIAL")
+            consume_onestore_purchase(db, pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "COMMERCIAL")
             
         elif pns_data.purchaseState == "CANCELED":
             message = f"결제 취소 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
@@ -292,7 +292,7 @@ def receive_onestore_pns(
             message = f"결제 완료 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}" 
             logger.info(message)
             # TODO: 여기에 게임 아이템 지급 로직 추가
-            consume_onestore_purchase(pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "SANDBOX")
+            consume_onestore_purchase(db, pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "SANDBOX")
             
         elif pns_data.purchaseState == "CANCELED":
             message = f"결제 취소 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
