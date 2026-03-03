@@ -107,7 +107,7 @@ def get_game_user_list(game_id: str, db: Session = Depends(get_db)):
 
 @router.post("/gameuser/check", response_model=schemas.GameUserCheckResponse)
 def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get_db)):
-    game_id = getattr(req.param, 'clientId', None) or getattr(req.param, 'parentProdId', None)
+    game_id = getattr(req.param, 'clientId', None) # or getattr(req.param, 'parentProdId', None)
 
     logger.info(f"game_id: {game_id}, prodId: {req.param.prodId}, serviceUserId: {req.param.serviceUserId}, serviceServerId {req.param.serviceServerId}")
     
@@ -137,7 +137,7 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
 
 @router.post("/onestore_webshop/serverlist", response_model=schemas.GameServerListResponse)
 def get_onestore_webshop_serverlist(req: schemas.OnestoreWebshopServerListRequest, db: Session = Depends(get_db)):
-    game_id = getattr(req.param, 'clientId', None) or getattr(req.param, 'prodId', None)
+    game_id = getattr(req.param, 'clientId', None) # or getattr(req.param, 'prodId', None)
     game_servers = db.query(models.GameServer).filter(models.GameServer.game_id == game_id).all()
     
     logger.info(f"원스토어 웹샵({game_id}) 서버 목록 조회: {game_servers}")

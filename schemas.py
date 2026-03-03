@@ -52,8 +52,7 @@ class GameUserListResponse(ResposeBase):
 
 # GameUser 조회 API용 스키마
 class GameUserCheckParam(BaseModel):
-    clientId: str | None = Field(default=None)
-    parentProdId: str | None = Field(default=None)
+    clientId: str
     prodId: str | None = Field(default=None) # Optional
     serviceUserId: str
     serviceServerId: str
@@ -76,8 +75,7 @@ class PaymentType(BaseModel):
     amount: str
 
 class OnestoreWebshopServerListParam(BaseModel):
-    clientId: str | None = Field(default=None)
-    prodId: str | None = Field(default=None)
+    clientId: str
 
 class OnestoreWebshopServerListRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
