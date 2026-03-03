@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from datetime import datetime
 from typing import Optional
 from typing import List
@@ -52,7 +52,7 @@ class GameUserListResponse(ResposeBase):
 
 # GameUser 조회 API용 스키마
 class GameUserCheckParam(BaseModel):
-    clientId: str
+    clientId: str | None = Field(default=None)
     parentProdId: str | None = Field(default=None)
     prodId: str | None = Field(default=None) # Optional
     serviceUserId: str
@@ -76,7 +76,8 @@ class PaymentType(BaseModel):
     amount: str
 
 class OnestoreWebshopServerListParam(BaseModel):
-    prodId: str
+    clientId: str | None = Field(default=None)
+    prodId: str | None = Field(default=None)
 
 class OnestoreWebshopServerListRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
