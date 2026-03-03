@@ -52,7 +52,8 @@ class GameUserListResponse(ResposeBase):
 
 # GameUser 조회 API용 스키마
 class GameUserCheckParam(BaseModel):
-    parentProdId: str
+    clientId: str
+    parentProdId: str | None = Field(default=None)
     prodId: str | None = Field(default=None) # Optional
     serviceUserId: str
     serviceServerId: str

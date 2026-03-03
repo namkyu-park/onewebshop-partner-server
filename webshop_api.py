@@ -107,18 +107,19 @@ def get_game_user_list(game_id: str, db: Session = Depends(get_db)):
 
 @router.post("/gameuser/check", response_model=schemas.GameUserCheckResponse)
 def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get_db)):
+    game_id = req.param.clientId if req.param.clientId else req.param.parentProdId
 
-    logger.info(f"parentProdId: {req.param.parentProdId}, prodId: {req.param.prodId}, serviceUserId: {req.param.serviceUserId}, serviceServerId {req.param.serviceServerId}")
-
+    logger.info(f"game_id: {game_id}, prodId: {req.param.prodId}, serviceUserId: {req.param.serviceUserId}, serviceServerId {req.param.serviceServerId}")
+    
     # DB에서 조건에 맞는 사용자 조회
     db_game_user = db.query(models.GameUser).filter(
-        models.GameUser.game_id == req.param.parentProdId,
+        models.GameUser.game_id == game_id,
         models.GameUser.user_id == req.param.serviceUserId,
         models.GameUser.server_id == req.param.serviceServerId
     ).first()
     
     if db_game_user:
-        logger.info(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {req.param.parentProdId}, 인앱상품ID: {req.param.prodId}")
+        logger.info(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
         return schemas.GameUserCheckResponse(
             result=schemas.ResponseResult(
                 code="0000", 
@@ -126,7 +127,7 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
             gameUser=db_game_user
         )
     else:
-        logger.error(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자가 아닙니다. 대상상품ID: {req.param.parentProdId}, 인앱상품ID: {req.param.prodId}")
+        logger.error(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자가 아닙니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
         return schemas.GameUserCheckResponse(
             result=schemas.ResponseResult(
                 code="0001", 
