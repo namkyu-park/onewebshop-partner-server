@@ -125,7 +125,7 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
             result=schemas.ResponseResult(
                 code="0000",
                 message="User found"),
-            developerPayload=f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}",
+            developerPayload=f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_c:{game_id}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}",
             gameUser=None #db_game_user
         )
     else:
@@ -134,7 +134,7 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
             result=schemas.ResponseResult(
                 code="0001", 
                 message="User not found"),
-            developerPayload=f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}",
+            developerPayload=f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_c:{game_id}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}",
             gameUser=None
         )
 
