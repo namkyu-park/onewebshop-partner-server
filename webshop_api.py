@@ -121,6 +121,9 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
     
     if db_game_user:
         developerPayload = f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_c:{game_id}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}"
+        if game_id == 'WS00000026' and req.param.prodId == 'gem0010000':
+            developerPayload = None
+
         logger.info(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
         logger.info(f"developerPayload: {developerPayload}")
         return schemas.GameUserCheckResponse(
