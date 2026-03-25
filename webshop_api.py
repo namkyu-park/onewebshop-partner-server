@@ -120,12 +120,14 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
     ).first()
     
     if db_game_user:
+        developerPayload = f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_c:{game_id}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}"
         logger.info(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
+        logger.info(f"developerPayload: {developerPayload}")
         return schemas.GameUserCheckResponse(
             result=schemas.ResponseResult(
                 code="0000",
                 message="User found"),
-            developerPayload=f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_c:{game_id}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}",
+            developerPayload=developerPayload,
             gameUser=None #db_game_user
         )
     else:
@@ -134,7 +136,7 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
             result=schemas.ResponseResult(
                 code="0001", 
                 message="User not found"),
-            developerPayload=f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_c:{game_id}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}",
+            developerPayload=developerPayload,
             gameUser=None
         )
 
