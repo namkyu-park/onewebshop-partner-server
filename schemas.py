@@ -65,6 +65,7 @@ class GameUserCheckRequest(BaseModel):
 
 class GameUserCheckResponse(ResposeBase):
     model_config = ConfigDict(from_attributes=True)
+    developerPayload: Optional[str] = None
     gameUser: GameUser | None = Field(default=None)
 
 

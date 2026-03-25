@@ -1,3 +1,4 @@
+import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
@@ -122,9 +123,10 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
         logger.info(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
         return schemas.GameUserCheckResponse(
             result=schemas.ResponseResult(
-                code="0000", 
+                code="0000",
                 message="User found"),
-            gameUser=db_game_user
+            developerPayload=f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}",
+            gameUser=None #db_game_user
         )
     else:
         logger.error(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자가 아닙니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
@@ -132,6 +134,7 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
             result=schemas.ResponseResult(
                 code="0001", 
                 message="User not found"),
+            developerPayload=f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}",
             gameUser=None
         )
 
@@ -223,12 +226,12 @@ def receive_onestore_pns(
         # 결제 상태에 따른 추가 처리
         if pns_data.purchaseState == "COMPLETED":
             # TODO: 여기에 게임 아이템 지급 로직 추가
-            message = f"결제 완료 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
+            message = f"결제 완료 처리: {pns_data.productName}( {pns_data.purchaseId} ), payload: {pns_data.developerPayload}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
             logger.info(message)
             consume_onestore_purchase(db, pns_data.clientId, pns_data.productId, pns_data.purchaseToken, pns_data.developerPayload, "COMMERCIAL")
             
         elif pns_data.purchaseState == "CANCELED":
-            message = f"결제 취소 처리: {pns_data.productName}( {pns_data.purchaseId} ), 가격: {pns_data.price}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
+            message = f"결제 취소 처리: {pns_data.productName}( {pns_data.purchaseId} ), payload: {pns_data.developerPayload}, 사용자: {pns_data.serviceUserId}, 서버: {pns_data.serviceServerId}"
             logger.info(message)
             # TODO: 여기에 게임 아이템 회수 로직 추가
         
