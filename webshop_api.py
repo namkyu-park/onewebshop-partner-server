@@ -1,5 +1,5 @@
 import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 import models
@@ -8,6 +8,7 @@ from database import get_db
 import json
 import logging
 from webshop_consume import consume_onestore_purchase
+from verify_onestore_webhook import verify_onestore_webhook
 
 
 # 로거 설정
@@ -15,6 +16,30 @@ logger = logging.getLogger(__name__)
 
 # APIRouter 생성
 router = APIRouter()
+
+
+def _verify_onestore_pns_signature(
+    db: Session, raw_json: str, payload: dict
+) -> schemas.OnestorePNSResponse | None:
+    """
+    JSON 본문의 clientId·signature로 무결성 검증.
+    실패 시 OnestorePNSResponse 반환, 성공 시 None.
+    """
+    client_id = payload.get("clientId")
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Missing clientId")
+    try:
+        if not verify_onestore_webhook(db, raw_json, client_id):
+            logger.warning(f"원스토어 PNS 서명 검증 실패: clientId={client_id}")
+            return schemas.OnestorePNSResponse(
+                success=False,
+                message="Invalid signature",
+                purchaseId=payload.get("purchaseId"),
+            )
+    except Exception as e:
+        logger.error(f"원스토어 PNS 무결성 검증 오류: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Integrity verification failed")
+    return None
 
 @router.post("/gameserver/{game_id}/list", response_model=schemas.GameServerListResponse)
 def get_game_server_list(game_id: str, db: Session = Depends(get_db)):
@@ -107,21 +132,58 @@ def get_game_user_list(game_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/gameuser/check", response_model=schemas.GameUserCheckResponse)
-def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get_db)):
-    game_id = getattr(req.param, 'clientId', None) # or getattr(req.param, 'parentProdId', None)
+async def check_game_user(request: Request, db: Session = Depends(get_db)):
+    body_bytes = await request.body()
+    try:
+        raw_json = body_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid body encoding")
+
+    try:
+        payload = json.loads(raw_json)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    param = payload.get("param") or {}
+    client_id = param.get("clientId")
+    if not client_id:
+        raise HTTPException(status_code=400, detail="Missing param.clientId")
+
+    try:
+        if not verify_onestore_webhook(db, raw_json, client_id):
+            logger.warning(f"gameuser/check 서명 검증 실패: clientId={client_id}")
+            return schemas.GameUserCheckResponse(
+                result=schemas.ResponseResult(
+                    code="0002",
+                    message="Invalid signature",
+                ),
+                developerPayload=None,
+                gameUser=None,
+            )
+    except Exception as e:
+        logger.error(f"gameuser/check 무결성 검증 오류: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Integrity verification failed")
+
+    try:
+        req = schemas.GameUserCheckRequest.model_validate(payload)
+    except Exception as e:
+        logger.error(f"gameuser/check 요청 스키마 검증 실패: {e}")
+        raise HTTPException(status_code=422, detail="Request body validation failed")
+
+    game_id = getattr(req.param, "clientId", None)  # or getattr(req.param, 'parentProdId', None)
 
     logger.info(f"game_id: {game_id}, prodId: {req.param.prodId}, serviceUserId: {req.param.serviceUserId}, serviceServerId {req.param.serviceServerId}")
-    
+
     # DB에서 조건에 맞는 사용자 조회
     db_game_user = db.query(models.GameUser).filter(
         models.GameUser.game_id == game_id,
         models.GameUser.user_id == req.param.serviceUserId,
         models.GameUser.server_id == req.param.serviceServerId
     ).first()
-    
+
     if db_game_user:
         developerPayload = f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_c:{game_id}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}"
-        if game_id == 'WS00000026' and req.param.prodId == 'gem0010000':
+        if game_id == "WS00000026" and req.param.prodId == "gem0010000":
             developerPayload = None
 
         logger.info(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
@@ -129,18 +191,20 @@ def check_game_user(req: schemas.GameUserCheckRequest, db: Session = Depends(get
         return schemas.GameUserCheckResponse(
             result=schemas.ResponseResult(
                 code="0000",
-                message="User found"),
+                message="User found",
+            ),
             developerPayload=developerPayload,
-            gameUser=None #db_game_user
+            gameUser=None,  # db_game_user
         )
     else:
         logger.error(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자가 아닙니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
         return schemas.GameUserCheckResponse(
             result=schemas.ResponseResult(
-                code="0001", 
-                message="User not found"),
-            developerPayload=developerPayload,
-            gameUser=None
+                code="0001",
+                message="User not found",
+            ),
+            developerPayload=None,
+            gameUser=None,
         )
 
 @router.post("/onestore_webshop/serverlist", response_model=schemas.GameServerListResponse)
@@ -158,9 +222,9 @@ def get_onestore_webshop_serverlist(req: schemas.OnestoreWebshopServerListReques
     )
 
 @router.post("/onestore_pns/notification", response_model=schemas.OnestorePNSResponse)
-def receive_onestore_pns(
-    pns_data: schemas.OnestorePNSRequest, 
-    db: Session = Depends(get_db)
+async def receive_onestore_pns_notification(
+    request: Request,
+    db: Session = Depends(get_db),
 ):
     """
     원스토어 PNS(Push Notification Service) 수신 엔드포인트
@@ -172,7 +236,27 @@ def receive_onestore_pns(
     - environment: SANDBOX (개발) / COMMERCIAL (상용)
     - marketCode: MKT_ONE (원스토어) / MKT_GLB (원스토어 글로벌)
     """
-    
+    body_bytes = await request.body()
+    try:
+        raw_json = body_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid body encoding")
+
+    try:
+        payload = json.loads(raw_json)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    sig_err = _verify_onestore_pns_signature(db, raw_json, payload)
+    if sig_err is not None:
+        return sig_err
+
+    try:
+        pns_data = schemas.OnestorePNSRequest.model_validate(payload)
+    except Exception as e:
+        logger.error(f"원스토어 PNS 요청 스키마 검증 실패: {e}")
+        raise HTTPException(status_code=422, detail="Request body validation failed")
+
     try:
         logger.info(f"원스토어 PNS 수신: purchaseId={pns_data.purchaseId}, state={pns_data.purchaseState}")
         
@@ -195,9 +279,9 @@ def receive_onestore_pns(
             for pt in pns_data.paymentTypeList
         ], ensure_ascii=False)
         
-        # 원본 데이터를 JSON 문자열로 저장
-        raw_data_json = pns_data.model_dump_json()
-        
+        # 원본 요청 JSON 문자열 저장 (서명 검증에 사용한 그대로)
+        raw_data_json = raw_json
+
         # DB에 저장
         db_pns = models.OnestorePNS(
             msg_version=pns_data.msgVersion,
@@ -270,9 +354,9 @@ def receive_onestore_pns(
 
 
 @router.post("/onestore_pns/sandbox", response_model=schemas.OnestorePNSResponse)
-def receive_onestore_pns(
-    pns_data: schemas.OnestorePNSRequest, 
-    db: Session = Depends(get_db)
+async def receive_onestore_pns_sandbox(
+    request: Request,
+    db: Session = Depends(get_db),
 ):
     """
     원스토어 PNS(Push Notification Service) 수신 엔드포인트 (SANDBOX)
@@ -284,7 +368,27 @@ def receive_onestore_pns(
     - environment: SANDBOX (개발) / COMMERCIAL (상용)
     - marketCode: MKT_ONE (원스토어) / MKT_GLB (원스토어 글로벌)
     """
-    
+    body_bytes = await request.body()
+    try:
+        raw_json = body_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid body encoding")
+
+    try:
+        payload = json.loads(raw_json)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Invalid JSON body")
+
+    sig_err = _verify_onestore_pns_signature(db, raw_json, payload)
+    if sig_err is not None:
+        return sig_err
+
+    try:
+        pns_data = schemas.OnestorePNSRequest.model_validate(payload)
+    except Exception as e:
+        logger.error(f"원스토어 PNS(sandbox) 요청 스키마 검증 실패: {e}")
+        raise HTTPException(status_code=422, detail="Request body validation failed")
+
     try:
         logger.info(f"원스토어 PNS 수신: purchaseId={pns_data.purchaseId}, state={pns_data.purchaseState}")
         

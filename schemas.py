@@ -61,6 +61,7 @@ class GameUserCheckParam(BaseModel):
 class GameUserCheckRequest(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     param: GameUserCheckParam
+    signature: Optional[str] = None
 
 
 class GameUserCheckResponse(ResposeBase):
