@@ -52,6 +52,7 @@ def verify_onestore_webhook(db: Session, rawMsg, client_id: str):
     result = __verify(originalMessage, b64decode(signature), pub_key)
 
     logger.info(f"verify_onestore_webhook client_id: {client_id}, result: {result}")
+    logger.info(f"verify_onestore_webhook rawMsg: {rawMsg}")
     logger.info(f"verify_onestore_webhook originalMessage: {originalMessage}")
 
     return result
