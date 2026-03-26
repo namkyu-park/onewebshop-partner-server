@@ -11,6 +11,24 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _load_rsa_public_key(key_material: str):
+    """
+    원스토어 라이선스 키는 PEM 또는 Base64(DER) 단일 문자열로 올 수 있다.
+    """
+    key_material = (key_material or "").strip()
+    if not key_material:
+        raise ValueError("empty license key")
+
+    if key_material.startswith("-----"):
+        rsa_key = RSA.import_key(key_material)
+    else:
+        rsa_key = RSA.import_key(b64decode(key_material))
+
+    if rsa_key.has_private():
+        return rsa_key.publickey()
+    return rsa_key
+
+
 def __verify(message, signature, pub_key):
     signer = PKCS1_v1_5.new(pub_key)
     digest = SHA512.new()
@@ -30,7 +48,7 @@ def verify_onestore_webhook(db: Session, rawMsg, client_id: str):
     signature = jsonData['signature']
     del jsonData['signature']
     originalMessage = json.dumps(jsonData, ensure_ascii=False, separators=(',', ':'))
-    pub_key = RSA.importKey(env_data.license_key).publickey()
+    pub_key = _load_rsa_public_key(env_data.license_key)
     result = __verify(originalMessage, b64decode(signature), pub_key)
 
     logger.info(f"verify_onestore_webhook client_id: {client_id}, result: {result}")
