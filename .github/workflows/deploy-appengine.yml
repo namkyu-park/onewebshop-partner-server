@@ -1,0 +1,56 @@
+# App Engine 배포 (GitHub Actions)
+#
+# 필요한 GitHub Secrets (Workload Identity Federation 권장):
+#   GCP_PROJECT_ID          예: onestore-webshop
+#   WIF_PROVIDER            projects/123.../locations/global/workloadIdentityPools/POOL/providers/PROVIDER
+#   WIF_SERVICE_ACCOUNT     deploy@PROJECT.iam.gserviceaccount.com
+#
+# 서비스 계정에 부여할 IAM 예시 (실제는 조직 정책에 맞게 최소 권한):
+#   roles/appengine.deployer
+#   roles/appengine.appAdmin   (또는 환경에 맞는 App Engine 관련 역할)
+#   roles/cloudbuild.builds.editor  (gcloud app deploy가 Cloud Build를 쓰는 경우)
+#   roles/storage.admin 또는 artifacts 저장소 쓰기 (스테이징 버킷)
+#
+# WIF 대신 JSON 키를 쓸 경우: 아래 auth 단계를 주석의 credentials_json 방식으로 바꾸고
+#   GCP_SA_KEY 에 서비스 계정 JSON 전체를 넣으세요 (보안상 WIF 권장).
+
+name: Deploy App Engine
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: appengine-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (WIF)
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      # JSON 키 방식 예시 (WIF 미사용 시 위 auth 단계를 주석 처리하고 아래 사용)
+      # - uses: google-github-actions/auth@v2
+      #   with:
+      #     credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy to App Engine
+        run: gcloud app deploy app.yaml --quiet --project="${{ secrets.GCP_PROJECT_ID }}"
