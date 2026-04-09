@@ -1,0 +1,22 @@
+# gcloud app deploy 업로드 제외 (용량·속도)
+.gcloudignore
+.git/
+.gitignore
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.idea/
+.vscode/
+*.db
+*.sqlite
+*.sqlite3
+data/
+.env
+.env.local
+*.log
+.DS_Store
+docker-compose.yml
+Dockerfile

@@ -25,6 +25,7 @@ class GameUser(Base):
     id = Column(Integer, primary_key=True, index=True)
     game_id = Column(String, index=True)
     user_id = Column(String, index=True)
+    user_id2 = Column(String, nullable=True)
     server_id = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -55,6 +56,7 @@ class OnestorePNS(Base):
     signature = Column(Text, nullable=False)
     raw_data = Column(Text, nullable=True)  # 원본 JSON 데이터 저장
     serviceUserId = Column(String(255), nullable=True)
+    serviceUserId2 = Column(String(255), nullable=True)
     serviceServerId = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

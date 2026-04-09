@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 
 # SQLite 데이터베이스 파일 경로
-# 환경: local (로컬 개발), production (Cloud Run)
+# 환경: local, production (Cloud Run /data), App Engine Standard (/tmp)
 ENV = os.getenv("ENV", "local")
 
 if ENV == "production":

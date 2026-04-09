@@ -132,21 +132,15 @@ def get_game_user_list(game_id: str, db: Session = Depends(get_db)):
 
 
 @router.post("/gameuser/check", response_model=schemas.GameUserCheckResponse)
-async def check_game_user(request: Request, db: Session = Depends(get_db)):
+async def check_game_user(request: Request, req: schemas.GameUserCheckRequest, db: Session = Depends(get_db)):
     body_bytes = await request.body()
     try:
         raw_json = body_bytes.decode("utf-8")
     except UnicodeDecodeError:
         raise HTTPException(status_code=400, detail="Invalid body encoding")
 
-    try:
-        payload = json.loads(raw_json)
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON body")
-
-    param = payload.get("param") or {}
-    client_id = param.get("clientId")
-    if not client_id:
+    client_id = getattr(req.param, "clientId", None)
+    if not client_id: 
         raise HTTPException(status_code=400, detail="Missing param.clientId")
 
     try:
@@ -164,29 +158,27 @@ async def check_game_user(request: Request, db: Session = Depends(get_db)):
         logger.error(f"gameuser/check 무결성 검증 오류: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Integrity verification failed")
 
-    try:
-        req = schemas.GameUserCheckRequest.model_validate(payload)
-    except Exception as e:
-        logger.error(f"gameuser/check 요청 스키마 검증 실패: {e}")
-        raise HTTPException(status_code=422, detail="Request body validation failed")
+    logger.info(f"clientId: {client_id}, prodId: {req.param.prodId}, serviceUserId: {req.param.serviceUserId}, serviceServerId {req.param.serviceServerId}")
 
-    game_id = getattr(req.param, "clientId", None)  # or getattr(req.param, 'parentProdId', None)
-
-    logger.info(f"game_id: {game_id}, prodId: {req.param.prodId}, serviceUserId: {req.param.serviceUserId}, serviceServerId {req.param.serviceServerId}")
-
-    # DB에서 조건에 맞는 사용자 조회
-    db_game_user = db.query(models.GameUser).filter(
-        models.GameUser.game_id == game_id,
+    q = db.query(models.GameUser).filter(
+        models.GameUser.game_id == client_id,
         models.GameUser.user_id == req.param.serviceUserId,
-        models.GameUser.server_id == req.param.serviceServerId
-    ).first()
+    )
+    if req.param.serviceServerId not in (None, ""):
+        q = q.filter(models.GameUser.server_id == req.param.serviceServerId)
+    if req.param.serviceUserId2 not in (None, ""):
+        q = q.filter(models.GameUser.user_id2 == req.param.serviceUserId2)
+
+    db_game_user = q.first()
 
     if db_game_user:
-        developerPayload = f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}_c:{game_id}_u:{req.param.serviceUserId}_s:{req.param.serviceUserId}"
-        if game_id == "WS00000026" and req.param.prodId == "gem0010000":
+        developerPayload = f"{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}:{client_id}:{req.param.serviceUserId}"
+        developerPayload += f":{req.param.serviceUserId2}" if req.param.serviceUserId2 else ""
+        developerPayload += f":{req.param.serviceServerId}:{req.param.prodId}"
+        if client_id == "WS00000026" and req.param.prodId == "gem0010000":
             developerPayload = None
 
-        logger.info(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
+        logger.info(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자입니다. 대상상품ID: {client_id}, 인앱상품ID: {req.param.prodId}")
         logger.info(f"developerPayload: {developerPayload}")
         return schemas.GameUserCheckResponse(
             result=schemas.ResponseResult(
@@ -197,7 +189,7 @@ async def check_game_user(request: Request, db: Session = Depends(get_db)):
             gameUser=None,  # db_game_user
         )
     else:
-        logger.error(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자가 아닙니다. 대상상품ID: {game_id}, 인앱상품ID: {req.param.prodId}")
+        logger.error(f"{req.param.serviceUserId}는 게임서버({req.param.serviceServerId})에 등록된 사용자가 아닙니다. 대상상품ID: {client_id}, 인앱상품ID: {req.param.prodId}")
         return schemas.GameUserCheckResponse(
             result=schemas.ResponseResult(
                 code="0001",
@@ -224,6 +216,7 @@ def get_onestore_webshop_serverlist(req: schemas.OnestoreWebshopServerListReques
 @router.post("/onestore_pns/notification", response_model=schemas.OnestorePNSResponse)
 async def receive_onestore_pns_notification(
     request: Request,
+    req: schemas.OnestorePNSRequest,
     db: Session = Depends(get_db),
 ):
     """

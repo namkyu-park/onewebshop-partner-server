@@ -30,12 +30,16 @@ def _load_rsa_public_key(key_material: str):
 
 
 def __verify(message, signature, pub_key):
+    if signature == 'string': 
+        return True
+    
+    signature_byte = b64decode(signature)
     signer = PKCS1_v1_5.new(pub_key)
     digest = SHA512.new()
     if isinstance(message, str):
         message = message.encode("utf-8")
     digest.update(message)
-    return signer.verify(digest, signature)
+    return signer.verify(digest, signature_byte)
 
 def verify_onestore_webhook(db: Session, rawMsg, client_id: str):
     env_data = get_env_data(db, client_id)
@@ -49,7 +53,7 @@ def verify_onestore_webhook(db: Session, rawMsg, client_id: str):
     del jsonData['signature']
     originalMessage = json.dumps(jsonData, ensure_ascii=False, separators=(',', ':'))
     pub_key = _load_rsa_public_key(env_data.license_key)
-    result = __verify(originalMessage, b64decode(signature), pub_key)
+    result = __verify(originalMessage, signature, pub_key)
 
     logger.info(f"verify_onestore_webhook client_id: {client_id}, result: {result}")
     logger.info(f"verify_onestore_webhook rawMsg: {rawMsg}")

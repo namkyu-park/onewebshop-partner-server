@@ -40,7 +40,8 @@ class GameServerListResponse(ResposeBase):
 class GameUser(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     user_id: str
-    server_id: str
+    user_id2: str | None = Field(default=None) # Optional
+    server_id: str | None = Field(default=None) # Optional
 
 class GameUserCreateRequest(BaseModel):
     game_id: str
@@ -55,7 +56,8 @@ class GameUserCheckParam(BaseModel):
     clientId: str
     prodId: str | None = Field(default=None) # Optional
     serviceUserId: str
-    serviceServerId: str
+    serviceUserId2: str | None = Field(default=None) # Optional
+    serviceServerId: str | None = Field(default=None) # Optional
 
 
 class GameUserCheckRequest(BaseModel):
@@ -104,6 +106,7 @@ class OnestorePNSRequest(BaseModel):
     marketCode: str  # MKT_ONE / MKT_GLB
     signature: str
     serviceUserId: str | None = Field(default=None)
+    serviceUserId2: str | None = Field(default=None)
     serviceServerId: str | None = Field(default=None)
 
 
