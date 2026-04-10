@@ -53,4 +53,4 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Deploy to App Engine
-        run: gcloud app deploy app.yaml --quiet --project="${{ secrets.GCP_PROJECT_ID }}" --bucket="${{ secrets.GCP_BUCKET_ID }}"
+        run: gcloud app deploy app.yaml --quiet --project="${{ secrets.GCP_PROJECT_ID }}"
